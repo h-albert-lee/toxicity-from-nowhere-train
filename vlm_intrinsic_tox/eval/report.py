@@ -15,7 +15,10 @@ from .analyze import LatentSummary
 LOGGER = get_logger(__name__)
 
 
-def write_reports(summaries: Iterable[LatentSummary], path: Path, top_k: int) -> None:
+def write_reports(
+        summaries: Iterable[LatentSummary],
+        path: Path, 
+        top_k: int) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     summaries = list(summaries)
     json_path = path.with_suffix(".json")

@@ -81,15 +81,17 @@ def train_sae(layer: int, shards: Iterable[np.ndarray], cfg) -> TrainResult:
     for epoch in range(cfg.epochs):
         model.train()
         total_loss = 0.0
+        count = 0
         for batch in train_loader:
             batch = batch.to(cfg.device)
             optimizer.zero_grad()
             _, recon = model(batch)
-            loss = F.mse_loss(recon, batch)
+            loss = F.mse_loss(recon, batch)  # mean over all elements
             loss.backward()
             optimizer.step()
-            total_loss += loss.item() * batch.size(0)
-        train_loss = total_loss / len(train_loader.dataset)
+            total_loss += loss.item() * batch.numel()  # sum of all elements
+            count += batch.numel()
+        train_loss = total_loss / count  # mean per element
         val_loss = _evaluate(model, val_loader, cfg.device)
         history.append(val_loss)
         LOGGER.info("Layer %s epoch %s train_loss=%.6f val_loss=%.6f", layer, epoch, train_loss, val_loss)
@@ -109,10 +111,10 @@ def _evaluate(model: TopKSAE, loader: DataLoader, device: str) -> float:
         for batch in loader:
             batch = batch.to(device)
             _, recon = model(batch)
-            loss = F.mse_loss(recon, batch, reduction="sum")
+            loss = F.mse_loss(recon, batch, reduction="sum")  # sum of all elements
             total += loss.item()
-            count += batch.size(0)
-    return total / max(count, 1)
+            count += batch.numel()  # total number of elements
+    return total / max(count, 1)  # mean per element
 
 
 __all__ = ["train_sae", "Scaler", "TrainResult"]

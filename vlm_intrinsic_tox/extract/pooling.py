@@ -10,7 +10,8 @@ import torch
 def pool_text_only_mean(hiddens: torch.Tensor, content_span: Sequence[int], **_: int) -> torch.Tensor:
     if not content_span:
         raise ValueError("content_span must not be empty")
-    selected = hiddens[:, content_span, :]
+    indices = torch.tensor(content_span, dtype=torch.long, device=hiddens.device)
+    selected = hiddens.index_select(1, indices)
     return selected.mean(dim=1)
 
 

@@ -57,7 +57,7 @@ def load_model(cfg) -> Tuple[LlavaForConditionalGeneration, AutoTokenizer, AutoP
     # Load model
     model = LlavaForConditionalGeneration.from_pretrained(
         cfg.hf_id,
-        torch_dtype=dtype,
+        dtype=dtype,
         device_map=cfg.device_map,
     )
     model.eval()

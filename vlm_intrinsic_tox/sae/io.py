@@ -44,10 +44,15 @@ def load_scaler(path: Path) -> Scaler:
 
 def load_shards(paths: Iterable[Path]) -> Iterator[np.ndarray]:
     for path in paths:
-        data = np.load(path)
-        if "activations" not in data:
-            raise ValueError(f"Invalid shard file {path}")
-        yield data["activations"].astype(np.float32)
+        data = np.load(path, allow_pickle=True)
+        # Extract runner saves as 'delta' key
+        if "delta" in data:
+            yield data["delta"].astype(np.float32)
+        elif "activations" in data:
+            # Backward compatibility
+            yield data["activations"].astype(np.float32)
+        else:
+            raise ValueError(f"Invalid shard file {path}: missing 'delta' or 'activations' key")
 
 
 def load_shard_metadata(path: Path) -> List[dict]:

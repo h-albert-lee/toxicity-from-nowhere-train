@@ -6,7 +6,7 @@ import dataclasses
 import json
 from pathlib import Path
 from typing import Iterable, Optional, Sequence
-
+import typing
 import yaml
 
 
@@ -47,6 +47,7 @@ class DataConfig:
     datasets: Sequence[str] = dataclasses.field(default_factory=lambda: ["memesafety_test"])
     split: str = "test"
     root: Optional[str] = None
+    max_samples: Optional[int] = None  # Limit number of samples for testing
 
 
 @dataclasses.dataclass
@@ -80,6 +81,8 @@ class SAEConfig:
     epochs: int = 12
     batch_size: int = 2048
     val_fraction: float = 0.05
+    device: str = "cuda"
+    seed: int = 42
 
 
 @dataclasses.dataclass
@@ -181,27 +184,54 @@ def _merge_dicts(base: dict, override: dict) -> dict:
     return result
 
 
+def _coerce_types(data: dict, target_class) -> dict:
+    """Coerce dict values to match dataclass field types."""
+    result = {}
+    field_types = typing.get_type_hints(target_class)
+    
+    for key, value in data.items():
+        if key not in field_types:
+            result[key] = value
+            continue
+        
+        target_type = field_types[key]
+        # Handle Optional types
+        if hasattr(target_type, '__origin__') and target_type.__origin__ is typing.Union:
+            target_type = next((t for t in target_type.__args__ if t is not type(None)), str)
+        
+        # Convert string to appropriate numeric type
+        if target_type in (float, int) and isinstance(value, str):
+            try:
+                result[key] = target_type(value)
+            except (ValueError, TypeError):
+                result[key] = value
+        else:
+            result[key] = value
+    
+    return result
+
+
 def _dict_to_config(data: dict) -> RootConfig:
-    model = ModelConfig(**data.get("model", {}))
+    model = ModelConfig(**_coerce_types(data.get("model", {}), ModelConfig))
     
     # Handle nested extract config
     extract_data = data.get("extract", {})
-    pooling = PoolingConfig(**extract_data.get("pooling", {}))
-    save = SaveConfig(**extract_data.get("save", {}))
+    pooling = PoolingConfig(**_coerce_types(extract_data.get("pooling", {}), PoolingConfig))
+    save = SaveConfig(**_coerce_types(extract_data.get("save", {}), SaveConfig))
     extract_clean = {k: v for k, v in extract_data.items() if k not in ["pooling", "save"]}
-    extract = ExtractConfig(**{**extract_clean, "pooling": pooling, "save": save})
+    extract = ExtractConfig(**{**_coerce_types(extract_clean, ExtractConfig), "pooling": pooling, "save": save})
     
-    data_cfg = DataConfig(**data.get("data", {}))
-    repro = ReproConfig(**data.get("repro", {}))
+    data_cfg = DataConfig(**_coerce_types(data.get("data", {}), DataConfig))
+    repro = ReproConfig(**_coerce_types(data.get("repro", {}), ReproConfig))
     
     # Handle nested SAE config
     sae_data = data.get("sae", {})
     if "sae" in sae_data:
-        sae_cfg = SAEConfig(**sae_data["sae"])
+        sae_cfg = SAEConfig(**_coerce_types(sae_data["sae"], SAEConfig))
     else:
-        sae_cfg = SAEConfig(**sae_data) if sae_data else SAEConfig()
-    normalization = NormalizationConfig(**sae_data.get("normalization", {}))
-    io = IOConfig(**sae_data.get("io", {}))
+        sae_cfg = SAEConfig(**_coerce_types(sae_data, SAEConfig)) if sae_data else SAEConfig()
+    normalization = NormalizationConfig(**_coerce_types(sae_data.get("normalization", {}), NormalizationConfig))
+    io = IOConfig(**_coerce_types(sae_data.get("io", {}), IOConfig))
     sae = SAETrainConfig(
         sae=sae_cfg,
         normalization=normalization,
@@ -211,15 +241,15 @@ def _dict_to_config(data: dict) -> RootConfig:
     
     # Handle nested eval config
     eval_data = data.get("eval", {})
-    consensus = ConsensusConfig(**eval_data.get("consensus", {}))
-    threshold = ThresholdConfig(**eval_data.get("threshold", {}))
+    consensus = ConsensusConfig(**_coerce_types(eval_data.get("consensus", {}), ConsensusConfig))
+    threshold = ThresholdConfig(**_coerce_types(eval_data.get("threshold", {}), ThresholdConfig))
     intervention_data = data.get("intervention", {})
-    intervention = InterventionConfig(**intervention_data)
+    intervention = InterventionConfig(**_coerce_types(intervention_data, InterventionConfig))
     
     # Remove nested objects from eval_data to avoid conflicts
     eval_clean = {k: v for k, v in eval_data.items() if k not in ["consensus", "threshold", "intervention", "io"]}
     eval_cfg = EvalConfig(**{
-        **eval_clean,
+        **_coerce_types(eval_clean, EvalConfig),
         "consensus": consensus,
         "threshold": threshold,
         "intervention": intervention,

@@ -1,23 +1,21 @@
 """Evaluation module for VLM intrinsic toxicity analysis."""
 
-from .analyze import analyze_latents, cross_layer_analysis
-from .intervene import LatentGating, apply_intervention
-from .metrics import compute_all_metrics, dfreq, dmag, auroc, kl_divergence, consensus
-from .report import generate_report, save_results
+from .analyze import analyze_latents, LatentSummary
+from .intervene import gate_latents, project_out_residual
+from .metrics import dfreq, dmag, auroc, kl, consensus
+from .report import write_reports
 from .steering import GCAVSteering
 
 __all__ = [
     "analyze_latents",
-    "cross_layer_analysis", 
-    "LatentGating",
-    "apply_intervention",
-    "compute_all_metrics",
+    "LatentSummary",
+    "gate_latents",
+    "project_out_residual",
     "dfreq",
     "dmag", 
     "auroc",
-    "kl_divergence",
+    "kl",
     "consensus",
-    "generate_report",
-    "save_results",
+    "write_reports",
     "GCAVSteering",
 ]

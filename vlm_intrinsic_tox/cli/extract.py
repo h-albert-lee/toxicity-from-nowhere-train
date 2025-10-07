@@ -21,7 +21,7 @@ def main() -> None:
     args = parse_args()
     configure_logging()
     cfg = load_config([args.config], overrides=args.overrides)
-    runner = ExtractRunner(cfg.extract)
+    runner = ExtractRunner(cfg)
     runner.run()
 
 

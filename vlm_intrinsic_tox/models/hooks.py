@@ -17,11 +17,17 @@ LOGGER = get_logger(__name__)
 class ResidualCapture:
     """Callable hook to capture decoder layer residual streams."""
 
-    def __init__(self) -> None:
+    def __init__(self, keep_on_device: bool = True) -> None:
         self.activations: Dict[int, torch.Tensor] = {}
+        self.keep_on_device = keep_on_device
 
     def __call__(self, layer_idx: int, hidden: torch.Tensor) -> None:
-        self.activations[layer_idx] = hidden.detach().to("cpu")
+        if self.keep_on_device:
+            # Keep on GPU for faster processing
+            self.activations[layer_idx] = hidden.detach()
+        else:
+            # Move to CPU to save GPU memory
+            self.activations[layer_idx] = hidden.detach().to("cpu")
 
     def clear(self) -> None:
         self.activations.clear()

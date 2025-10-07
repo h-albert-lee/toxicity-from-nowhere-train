@@ -1,0 +1,30 @@
+model:
+  hf_id: AIML-TUDA/LlavaGuard-v1.2-7B-OV-hf
+  dtype: bfloat16
+  device_map: auto
+  prompt_template: llavaguard_default
+
+extract:
+  layers: [0]  # Start with layer 0 as requested
+  capture_point: post_attn_resid
+  cross_attn_off_impl: zeros
+  pooling:
+    name: text_only_mean
+    last_k: 5
+  batch_size: 2
+  num_workers: 2
+  amp: true
+  save:
+    out_dir: artifacts/activations/mdit_triple
+    shard_size: 4000
+
+data:
+  datasets:
+    - mdit_triple
+  split: train  # 322,921 samples in train split
+  root: /home/pljh0906/toxicity-from-nowhere-train/datasets/MDIT-Bench-Triple
+  max_samples: null  # Set to a small number for testing (e.g., 100), null for full dataset
+
+repro:
+  seed: 42
+

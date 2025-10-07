@@ -8,10 +8,18 @@ from typing import Iterator, Optional
 
 from PIL import Image
 
-from .registry import Sample
 from ..utils.logging import get_logger
 
 LOGGER = get_logger(__name__)
+
+
+class Sample:
+    def __init__(self, id: str, image, prompt: str, label: Optional[int], metadata: dict):
+        self.id = id
+        self.image = image
+        self.prompt = prompt
+        self.label = label
+        self.metadata = metadata
 
 
 class SIUOAdapter:
@@ -33,8 +41,16 @@ class SIUOAdapter:
         
         LOGGER.info(f"Loading SIUO dataset from {self.data_dir}")
     
-    def __iter__(self) -> Iterator[Sample]:
-        """Iterate over SIUO samples."""
+    def iter_samples(self, prompt_template: str, labeler=None) -> Iterator[Sample]:
+        """Iterate over SIUO samples.
+        
+        Args:
+            prompt_template: Template for formatting the prompt (e.g., "<image>\n{instruction}")
+            labeler: Optional labeler (not used for SIUO)
+            
+        Yields:
+            Sample objects with prompt field
+        """
         with open(self.meta_file, "r") as f:
             items = json.load(f)
         
@@ -62,16 +78,21 @@ class SIUOAdapter:
             elif "safe" in category or "benign" in category:
                 label = 0
             
+            # Format prompt using the template
+            instruction = item["question"]
+            prompt = prompt_template.format(instruction=instruction)
+            
             yield Sample(
                 id=f"siuo_{self.data_type}_{i}",
                 image=image,
-                instruction=item["question"],
+                prompt=prompt,
                 label=label,
-                meta={
+                metadata={
                     "dataset": "siuo",
                     "data_type": self.data_type,
                     "category": item.get("category", "unknown"),
-                    "image_path": str(image_path)
+                    "image_path": str(image_path),
+                    "instruction": instruction
                 }
             )
 

@@ -20,9 +20,10 @@ extract:
 
 data:
   datasets:
-    - memesafety_test
+    - siuo_gen # memesafety_test # siuo_gen
   split: test
-  root: null
+  root: datasets/SIUO/data # datasets/Meme-Safety-Bench/full # datasets/SIUO/data
+  max_samples: null  # Limit samples for testing (remove or set to null for full dataset)
 
 repro:
   seed: 42

@@ -41,7 +41,7 @@ def main() -> None:
             LOGGER.warning("No shards found for layer %s in %s", layer, shard_dir)
             continue
         LOGGER.info("Evaluating layer %s with %s shards", layer, len(shard_paths))
-        model_prefix = Path(cfg.eval.io.sae_dir) / f"layer_{layer:02d}"
+        model_prefix = Path(cfg.eval.io.sae_dir) / f"sae_layer{layer:02d}"
         model = load_model(model_prefix, device="cuda")
         scaler = load_scaler(model_prefix.with_suffix(".scaler.json"))
         activations, labels = _load_dataset(shard_paths)

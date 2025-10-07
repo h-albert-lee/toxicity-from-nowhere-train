@@ -17,9 +17,9 @@ LOGGER = get_logger(__name__)
 class Sample:
     id: str
     image: str
-    instruction: str
+    prompt: str
     label: Optional[int]
-    meta: Dict[str, object]
+    metadata: Dict[str, object]
 
 
 class MemeSafetyBenchAdapter:
@@ -45,13 +45,13 @@ class MemeSafetyBenchAdapter:
             image = row[self.image_column]
             instruction = row.get(self.instruction_column, "") or ""
             prompt = prompt_template.format(instruction=instruction)
-            label = labeler(row)
+            label = labeler(row) if labeler else None
             yield Sample(
                 id=f"{self.name}_{self.split}_{idx}",
                 image=image, 
-                instruction=instruction,
+                prompt=prompt,
                 label=label, 
-                meta=row
+                metadata=dict(row)
             )
 
 
